@@ -1,0 +1,291 @@
+<!--This make for my costomrs-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Money Management Generator</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a; /* Darker theme for trading/betting vibe */
+            color: #e2e8f0;
+        }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569; 
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b; 
+        }
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .input-group input {
+            background-color: #0f172a;
+            border-color: #334155;
+            color: white;
+        }
+        .input-group input:focus {
+            border-color: #6366f1;
+            ring: 2px solid #6366f1;
+        }
+
+        .table-row-animate {
+            animation: fadeIn 0.3s ease-out forwards;
+            opacity: 0;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 flex flex-col items-center">
+
+    <!-- Header -->
+    <div class="w-full max-w-2xl mb-6 text-center">
+        <h1 class="text-3xl font-bold text-white mb-2"><i class="fas fa-chart-line text-emerald-400 mr-2"></i> Money Management Generator</h1>
+        <p class="text-slate-400 text-sm">Input your balance to generate a safe betting strategy (Min 20 LKR)</p>
+    </div>
+
+    <div class="w-full max-w-2xl grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        <!-- Input Section -->
+        <div class="glass-panel rounded-2xl p-6 shadow-xl h-fit">
+            <h2 class="text-xl font-semibold mb-4 text-emerald-400 border-b border-slate-700 pb-2">Generate Plan</h2>
+            
+            <form id="calcForm" class="space-y-4">
+                
+                <!-- Current Balance -->
+                <div class="input-group">
+                    <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Current Balance (LKR)</label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-3 text-slate-500">LKR</span>
+                        <input type="number" id="balance" class="w-full pl-12 pr-4 py-3 rounded-lg border focus:outline-none transition-all" placeholder="e.g. 5000" required>
+                    </div>
+                </div>
+
+                <!-- HIDDEN CONFIGURATION (Set Automatically) -->
+                <!-- Base Bet: 20 LKR | Target: 10% | Stop Loss: 20% | Strategy: Martingale -->
+                <div class="hidden">
+                    <input type="number" id="baseBet" value="20">
+                    <input type="number" id="targetPercent" value="10">
+                    <input type="number" id="stopLossPercent" value="20">
+                    <select id="strategy">
+                         <option value="martingale" selected>Martingale</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-lg shadow-lg hover:shadow-emerald-500/30 transition-all transform hover:-translate-y-1">
+                    Generate Auto Plan
+                </button>
+            </form>
+        </div>
+
+        <!-- Summary Section (Hidden initially) -->
+        <div id="summaryPanel" class="hidden flex flex-col gap-4">
+            <!-- Stats Cards -->
+            <div class="glass-panel rounded-2xl p-6 shadow-xl">
+                <h3 class="text-sm font-semibold text-slate-400 uppercase mb-4">Daily Goals</h3>
+                <div class="grid grid-cols-2 gap-4 text-center">
+                    <div class="bg-emerald-500/10 rounded-xl p-3 border border-emerald-500/20">
+                        <div class="text-emerald-400 text-xs font-bold mb-1">TAKE PROFIT AT</div>
+                        <div class="text-2xl font-bold text-white" id="tpValue">0</div>
+                        <div class="text-xs text-emerald-300/70" id="tpGain">+0</div>
+                    </div>
+                    <div class="bg-rose-500/10 rounded-xl p-3 border border-rose-500/20">
+                        <div class="text-rose-400 text-xs font-bold mb-1">STOP LOSS AT</div>
+                        <div class="text-2xl font-bold text-white" id="slValue">0</div>
+                        <div class="text-xs text-rose-300/70" id="slLoss">-0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Risk Analysis -->
+            <div class="glass-panel rounded-2xl p-6 shadow-xl flex-1">
+                <h3 class="text-sm font-semibold text-slate-400 uppercase mb-2">Safety Analysis</h3>
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-slate-300">Safe Rounds:</span>
+                    <span class="text-xl font-bold text-indigo-400" id="safeRounds">0</span>
+                </div>
+                <div class="w-full bg-slate-700 rounded-full h-2.5 mb-4">
+                    <div id="safetyBar" class="bg-indigo-500 h-2.5 rounded-full" style="width: 0%"></div>
+                </div>
+                <p class="text-xs text-slate-400 leading-relaxed" id="riskMsg">
+                    Generate a plan to see analysis.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Strategy Table -->
+    <div id="planSection" class="w-full max-w-2xl mt-6 hidden">
+        <div class="glass-panel rounded-2xl overflow-hidden shadow-xl">
+            <div class="p-4 border-b border-slate-700 bg-slate-800/50 flex justify-between items-center">
+                <h3 class="font-bold text-white">Betting Progression Plan</h3>
+                <span class="text-xs bg-slate-700 text-slate-300 px-2 py-1 rounded">Based on Balance</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-slate-300">
+                    <thead class="text-xs text-slate-400 uppercase bg-slate-800/50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3">Round</th>
+                            <th scope="col" class="px-6 py-3">Bet Amount</th>
+                            <th scope="col" class="px-6 py-3">Total Invested</th>
+                            <th scope="col" class="px-6 py-3">Balance If Lost</th>
+                        </tr>
+                    </thead>
+                    <tbody id="planTableBody">
+                        <!-- Rows generated here -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="p-4 bg-slate-800/30 text-center">
+                <p class="text-xs text-slate-500 italic"><i class="fas fa-exclamation-triangle mr-1"></i> Trading involves risk. Never bet more than you can afford to lose.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('calcForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            generatePlan();
+        });
+
+        function generatePlan() {
+            // 1. Get Inputs
+            const balance = parseFloat(document.getElementById('balance').value);
+            const baseBet = parseFloat(document.getElementById('baseBet').value);
+            const targetPercent = parseFloat(document.getElementById('targetPercent').value);
+            const stopLossPercent = parseFloat(document.getElementById('stopLossPercent').value);
+            const strategy = document.getElementById('strategy').value;
+
+            if (isNaN(balance) || isNaN(baseBet)) {
+                alert("Please enter valid numbers");
+                return;
+            }
+
+            // 2. Calculate Limits
+            const profitAmount = balance * (targetPercent / 100);
+            const lossAmount = balance * (stopLossPercent / 100);
+            
+            const targetBalance = balance + profitAmount;
+            const stopLossBalance = balance - lossAmount;
+
+            // 3. Update Summary UI
+            document.getElementById('tpValue').innerText = "LKR " + targetBalance.toFixed(0);
+            document.getElementById('tpGain').innerText = "+" + profitAmount.toFixed(0) + " Profit";
+            
+            document.getElementById('slValue').innerText = "LKR " + stopLossBalance.toFixed(0);
+            document.getElementById('slLoss').innerText = "-" + lossAmount.toFixed(0) + " Loss";
+
+            document.getElementById('summaryPanel').classList.remove('hidden');
+            document.getElementById('summaryPanel').classList.add('flex');
+
+            // 4. Generate Progression Table
+            const tableBody = document.getElementById('planTableBody');
+            tableBody.innerHTML = '';
+            
+            let currentBet = baseBet;
+            let totalInvested = 0;
+            let currentRound = 1;
+            let tempBalance = balance;
+            
+            // Fibonacci helpers
+            let fib1 = 0, fib2 = 1;
+
+            // Loop until total invested exceeds stop loss limit (or balance runs out)
+            // We use the configured Stop Loss Amount as the limit for the progression plan
+            const maxLossLimit = lossAmount; 
+
+            while (totalInvested + currentBet <= maxLossLimit) {
+                
+                totalInvested += currentBet;
+                const balanceIfLost = balance - totalInvested;
+
+                const row = document.createElement('tr');
+                row.className = "border-b border-slate-700 hover:bg-slate-700/50 table-row-animate";
+                row.style.animationDelay = `${currentRound * 0.05}s`;
+                
+                row.innerHTML = `
+                    <td class="px-6 py-4 font-medium text-white">#${currentRound}</td>
+                    <td class="px-6 py-4 text-emerald-400 font-bold">LKR ${Math.ceil(currentBet)}</td>
+                    <td class="px-6 py-4 text-slate-400">LKR ${Math.ceil(totalInvested)}</td>
+                    <td class="px-6 py-4 text-rose-400">LKR ${Math.ceil(balanceIfLost)}</td>
+                `;
+                tableBody.appendChild(row);
+
+                // Calculate next bet based on strategy
+                if (strategy === 'martingale') {
+                    currentBet = currentBet * 2;
+                } else if (strategy === 'dalembert') {
+                    currentBet = currentBet + baseBet;
+                } else if (strategy === 'fibonacci') {
+                    // Start fib sequence logic relevant to betting (usually 1, 1, 2, 3, 5...) * baseBet
+                    // Reset or continue
+                    if(currentRound === 1) { 
+                        fib1 = 1; fib2 = 1; 
+                        currentBet = baseBet; // Next is also baseBet
+                    } else {
+                        const nextFib = fib1 + fib2;
+                        fib1 = fib2;
+                        fib2 = nextFib;
+                        currentBet = nextFib * baseBet;
+                    }
+                    // Simple hack for fib display: first round was calculated, prepare next
+                    if (currentRound === 1) currentBet = baseBet; 
+                }
+
+                currentRound++;
+                if(currentRound > 20) break; // Safety break
+            }
+
+            // 5. Update Risk Analysis
+            const safeRounds = currentRound - 1;
+            document.getElementById('safeRounds').innerText = safeRounds;
+            document.getElementById('planSection').classList.remove('hidden');
+
+            const safetyBar = document.getElementById('safetyBar');
+            let safetyColor = 'bg-rose-500';
+            let riskText = "Extremely Risky. You have very little room for error.";
+
+            if (safeRounds >= 7) {
+                safetyColor = 'bg-emerald-500';
+                safetyBar.style.width = '100%';
+                riskText = "Safe Strategy. Your balance can withstand a long losing streak relative to your stop loss.";
+            } else if (safeRounds >= 5) {
+                safetyColor = 'bg-yellow-500';
+                safetyBar.style.width = '60%';
+                riskText = "Moderate Risk. Be careful, a bad streak could hit your stop loss.";
+            } else {
+                safetyBar.style.width = '30%';
+            }
+
+            safetyBar.className = `h-2.5 rounded-full transition-all duration-1000 ${safetyColor}`;
+            document.getElementById('riskMsg').innerText = riskText;
+        }
+    </script>
+</body>
+</html>
